@@ -16,4 +16,5 @@ Library
   Hs-Source-Dirs:     src
   Exposed-modules:    Data.SplayTree
                       Data.SplayTree.Seq
+                      Data.SplayTree.Set
   Build-depends:      base         >= 3      && < 5
