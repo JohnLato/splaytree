@@ -29,7 +29,6 @@ import Control.Applicative hiding (empty)
 import Control.Monad
 
 import Data.Data
-import qualified Data.DList as DL
 import Data.Foldable
 import Data.Maybe
 import Data.Monoid
@@ -225,17 +224,6 @@ ascendSplay' x [pt@(DescR{})] = (rotateR (up x pt), [])
 ascendSplay' _ [] = error "SplayTree: internal error, ascendSplay' called past root"
 
 -- ---------------------------
--- some tests
-
--- a Seq type
-newtype Elem a = Elem { getElem :: a } deriving (Show, Ord, Eq, Num, Enum)
-
-instance Measured (Elem a) where
-  type Measure (Elem a) = Sum Int
-  measure _ = Sum 1
-
-type SSeq a = SplayTree (Elem a)
-
 -- A measure of tree depth
 newtype ElemD a = ElemD { getElemD :: a } deriving (Show, Ord, Eq, Num, Enum)
 
