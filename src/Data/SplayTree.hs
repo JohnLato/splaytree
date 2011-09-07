@@ -8,7 +8,7 @@
             ,UndecidableInstances #-}
 
 module Data.SplayTree (
-  SplayTree
+  SplayTree (..)
  ,Measured (..)
  ,empty
  ,(|>)
@@ -17,12 +17,12 @@ module Data.SplayTree (
  ,null
  ,split
  ,query
+ ,balance
  ,deepL
  ,deepR
  ,fromList
  ,fmap'
  ,traverse'
- ,balance
 )
 
 where
