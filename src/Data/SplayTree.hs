@@ -17,6 +17,9 @@ module Data.SplayTree (
  ,null
  ,split
  ,query
+ ,deepL
+ ,deepR
+ ,fromList
  ,fmap'
  ,traverse'
  ,balance
@@ -114,10 +117,9 @@ l   >< r = asc . desc $ descendL r []
   desc (Just (b@(Branch{}), zp)) = desc $ descendL b zp
   desc Nothing                   = error "SplayTree.(><): internal error"
 
--- | /O(n)/.  Create a Tree from a finite list of elements.  Currently
--- this function should be avoided as it constructs an unbalanced tree.
+-- | /O(n)/.  Create a Tree from a finite list of elements.
 fromList :: (Measured a) => [a] -> SplayTree a
-fromList = foldr (<|) Tip
+fromList = balance . foldr (<|) Tip
 
 -- -------------------------------------------
 -- deconstruction
@@ -172,6 +174,25 @@ traverse'
 traverse' f Tip = pure Tip
 traverse' f (Branch _ l a r) =
   branch <$> traverse' f l <*> f a <*> traverse' f r
+
+-- | descend to the deepest left-hand branch
+deepL :: Measured a => SplayTree a -> SplayTree a
+deepL = deep descendL
+
+-- | descend to the deepest right-hand branch
+deepR :: Measured a => SplayTree a -> SplayTree a
+deepR = deep descendR
+
+deep
+  :: Measured a
+  => (SplayTree a -> [Thread a] -> Maybe (SplayTree a, [Thread a]))
+  -> SplayTree a
+  -> SplayTree a
+deep descender tree = uncurry ascendSplay . desc $ descender tree []
+ where
+  desc (Just (Tip, zp))          = (Tip, zp)
+  desc (Just (b@(Branch{}), zp)) = desc $ descender b zp
+  desc Nothing                   = (tree, [])
 
 -- -------------------------------------------
 -- splay tree stuff...
