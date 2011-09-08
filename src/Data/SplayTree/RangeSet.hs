@@ -15,9 +15,10 @@ module Data.SplayTree.RangeSet (
  ,null
  ,singleton
  ,empty
+ ,append
  ,insert
  ,delete
- ,S.fromList
+ ,fromList
 )
 
 where
@@ -112,6 +113,12 @@ singleton r = r <| S.empty
 
 null :: RangeSet a -> Bool
 null = S.null
+
+fromList :: (Num a, Ord a) => [Range a] -> RangeSet a
+fromList = foldl' insert empty
+
+append :: (Num a, Ord a) => RangeSet a -> RangeSet a -> RangeSet a
+append l r = foldl' insert l (toList r)
 
 insert :: (Num a, Ord a) => RangeSet a -> Range a -> RangeSet a
 insert tree rng = case snd <$> query (compareRange rng) tree of
