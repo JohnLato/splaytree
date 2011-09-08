@@ -5,7 +5,8 @@
             ,DeriveTraversable #-}
 
 module Data.SplayTree.RangeSet (
-  RangeSet
+  Range (..)
+ ,RangeSet
  ,point
  ,inRange
  ,null
