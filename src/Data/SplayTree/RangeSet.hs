@@ -14,6 +14,7 @@ module Data.SplayTree.RangeSet (
  ,empty
  ,insert
  ,delete
+ ,S.fromList
 )
 
 where
@@ -117,3 +118,4 @@ delete tree rng = case snd <$> query (compareRange rng) tree of
     []  -> l >< delete r rng
     [x] -> l >< (x <| delete r rng)
     xs  -> l >< S.fromList xs >< delete r rng
+
