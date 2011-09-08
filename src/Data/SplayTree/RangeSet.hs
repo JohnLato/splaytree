@@ -8,6 +8,8 @@ module Data.SplayTree.RangeSet (
   Range (..)
  ,RangeSet
  ,point
+ ,range
+ ,rangePs
  ,inRange
  ,rangeMax
  ,null
@@ -57,11 +59,17 @@ type RangeSet a = S.SplayTree (Range a)
 point :: Num a => a -> Range a
 point x = Range x 0
 
--- | Create a range from a minimum value and range
+-- | Create a @Range@ from a minimum value and range
 range :: (Num a, Ord a) => a -> a -> Range a
 range start rng
   | rng >= 0 = Range start rng
   | otherwise = error "Range must have a non-negative range"
+
+-- | Create a @Range@ from the two endpoints.
+rangePs :: (Num a, Ord a) => a -> a -> Range a
+rangePs start stop = let mn = min start stop
+                         dst = max start stop - mn
+                     in Range mn dst
 
 -- | check if a value is within the range
 inRange :: (Num a, Ord a) => a -> Range a -> Bool
