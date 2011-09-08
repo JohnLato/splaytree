@@ -9,6 +9,7 @@ module Data.SplayTree.RangeSet (
  ,RangeSet
  ,point
  ,inRange
+ ,rangeMax
  ,null
  ,singleton
  ,empty
