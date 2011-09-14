@@ -15,6 +15,7 @@ module Data.SplayTree (
  ,(<|)
  ,(><)
  ,null
+ ,singleton
  ,size
  ,split
  ,query

@@ -53,15 +53,23 @@ instance Ord a => Monoid (Set a) where
   mempty = Set mempty
   mappend = union
 
+-- | Construct an empty set
 empty :: (Ord a) => Set a
 empty = Set S.empty
 
+-- | Construct a set with a single element
+singleton :: (Ord a) => a -> Set a
+singleton = Set . S.singleton . Elem
+
+-- | 'True' if this set is empty, 'False' otherwise.
 null :: (Ord a) => Set a -> Bool
 null = S.null . unSet
 
+-- | Return the number of elements in this set.
 size :: (Ord a) => Set a -> Int
 size = S.size . unSet
 
+-- | Return 'True' if the given value is present in this set, 'False' otherwise.
 member :: (Ord a) => a -> Set a -> Bool
 member a (Set tree) = case snd <$> query (>= Elem a) tree of
   Nothing                  -> False
@@ -75,9 +83,11 @@ memberSplay a (Set tree) = case snd <$> query (>= Elem a) tree of
   Nothing                      -> (False, Set tree)
   Just foc@(S.Branch _ l a' r) -> (Elem a == a', Set foc)
 
+-- | Construct a @Set@ from a list of elements.
 fromList :: (Ord a) => [a] -> Set a
 fromList = Set . S.fromList . P.map Elem
 
+-- | Add the specified value to this set.
 insert :: (Ord a) => a -> Set a -> Set a
 insert a (Set tree) = case snd <$> query (>= aIn) tree of
   Nothing -> Set $ tree |> aIn
@@ -86,6 +96,7 @@ insert a (Set tree) = case snd <$> query (>= aIn) tree of
     else Set $ l >< (aIn <| a' <| r)
  where aIn = Elem a
 
+-- | Remove the specified value from this set if present.
 delete :: (Ord a) => a -> Set a -> Set a
 delete a (Set tree) = case snd <$> query (>= Elem a) tree of
   Nothing -> Set tree
@@ -93,9 +104,13 @@ delete a (Set tree) = case snd <$> query (>= Elem a) tree of
     then Set (l >< r)
     else Set foc
 
+-- | Construct a set containing all elements from both sets.
+--
+-- The smaller set should be presented as the second argument.
 union :: (Ord a) => Set a -> Set a -> Set a
 union l r = foldl' (flip insert) l r
 
+-- | Transform this set by applying a function to every value.
 map :: (Ord a, Ord b) => (a -> b) -> Set a -> Set b
 map f = fromList . P.map f . toList
 
