@@ -97,5 +97,5 @@ union :: (Ord a) => Set a -> Set a -> Set a
 union l r = foldl' (flip insert) l r
 
 map :: (Ord a, Ord b) => (a -> b) -> Set a -> Set b
-map f = Set . fmap' (fmap f) . unSet
+map f = fromList . P.map f . toList
 
