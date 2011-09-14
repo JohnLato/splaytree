@@ -15,6 +15,7 @@ module Data.SplayTree (
  ,(<|)
  ,(><)
  ,null
+ ,size
  ,split
  ,query
  ,balance
@@ -161,11 +162,21 @@ query p t
     ml = i `mappend` measure l
     mm = ml `mappend` measure a
 
+-- --------------------------
+-- Basic interface
+
+size :: SplayTree a -> Int
+size = foldl' (\acc _ -> acc+1) 0
+
+-- --------------------------
+-- Traversals
+
 -- | Like fmap, but with a more restrictive type.
 fmap' :: Measured b => (a -> b) -> SplayTree a -> SplayTree b
 fmap' f Tip = Tip
 fmap' f (Branch _ l a r) = branch (fmap' f l) (f a) (fmap' f r)
 
+-- | Like traverse, but with a more restrictive type.
 traverse'
   :: (Measured b, Applicative f)
   => (a -> f b)
@@ -183,6 +194,9 @@ deepL = deep descendL
 deepR :: Measured a => SplayTree a -> SplayTree a
 deepR = deep descendR
 
+-- | Descend a tree using the provided `descender` descending function,
+-- then recreate the tree.  The new focus will be the last node accessed
+-- in the tree.
 deep
   :: Measured a
   => (SplayTree a -> [Thread a] -> Maybe (SplayTree a, [Thread a]))
