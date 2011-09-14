@@ -15,6 +15,8 @@ module Data.SplayTree.Set (
  ,insert
  ,delete
  ,union
+ ,difference
+ ,intersection
  ,map
  ,fromList
 )

@@ -13,7 +13,7 @@ import Test.QuickCheck (Arbitrary)
 import Test.Framework (Test, defaultMain, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 
--- Key type
+-- Element type
 newtype Key = K { unK :: Int }
             deriving (Arbitrary, Eq, Ord, Show)
 
@@ -61,6 +61,20 @@ pUnion xs ys = L.sort (L.union as bs) ==
     as = fromList xs
     bs = fromList ys
 
+pDiff :: [Key] -> [Key] -> Bool
+pDiff xs ys = (L.sort . F.toList $ S.difference (S.fromList as) (S.fromList bs))
+              == (L.sort . F.toList $ Set.difference (Set.fromList as) (Set.fromList bs))
+ where
+   as = fromList xs
+   bs = fromList ys
+
+pIntersect :: [Key] -> [Key] -> Bool
+pIntersect xs ys = (L.sort . F.toList $ S.intersection (S.fromList as) (S.fromList bs))
+              == (L.sort . F.toList $ Set.intersection (Set.fromList as) (Set.fromList bs))
+ where
+   as = fromList xs
+   bs = fromList ys
+
 ------------------------------------------------------------------------
 -- ** Transformations
 
@@ -106,6 +120,8 @@ tests =
       ]
     -- Combine
     , testProperty "union" pUnion
+    , testProperty "difference" pDiff
+    , testProperty "intersection" pIntersect
     -- Transformations
     , testProperty "map" pMap
     -- Folds
