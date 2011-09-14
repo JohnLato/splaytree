@@ -42,6 +42,9 @@ pSize = length `eq` S.size
 pMember :: Key -> [Key] -> Bool
 pMember k = L.elem k `eq` S.member k
 
+pMemberSplay :: Key -> [Key] -> Bool
+pMemberSplay k = L.elem k `eq` S.member k
+
 pInsert :: Key -> [Key] -> Bool
 pInsert a = insert a `eq` (toAscList . S.insert a)
 
@@ -97,6 +100,7 @@ tests =
     , testGroup "basic interface"
       [ testProperty "size" pSize
       , testProperty "member" pMember
+      , testProperty "memberSplay" pMemberSplay
       , testProperty "insert" pInsert
       , testProperty "delete" pDelete
       ]

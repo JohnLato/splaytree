@@ -11,6 +11,7 @@ module Data.SplayTree.Set (
  ,null
  ,size
  ,member
+ ,memberSplay
  ,insert
  ,delete
  ,union
@@ -65,6 +66,14 @@ member :: (Ord a) => a -> Set a -> Bool
 member a (Set tree) = case snd <$> query (>= Elem a) tree of
   Nothing                  -> False
   Just (S.Branch _ l a' r) -> Elem a == a'
+
+-- | Check if @a@ is a member, and return a set splayed to @a@.
+-- The return set is splayed to an element near @a@ if @a@ isn't in the
+-- set.
+memberSplay :: (Ord a) => a -> Set a -> (Bool, Set a)
+memberSplay a (Set tree) = case snd <$> query (>= Elem a) tree of
+  Nothing                      -> (False, Set tree)
+  Just foc@(S.Branch _ l a' r) -> (Elem a == a', Set foc)
 
 fromList :: (Ord a) => [a] -> Set a
 fromList = Set . S.fromList . P.map Elem
