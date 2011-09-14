@@ -19,10 +19,16 @@ module Data.SplayTree (
  ,size
  ,split
  ,query
+ ,memberSplay
+ ,delete
+ ,insert
+ ,difference
+ ,intersection
  ,balance
  ,deepL
  ,deepR
  ,fromList
+ ,fromListBalance
  ,fmap'
  ,traverse'
 )
@@ -121,7 +127,14 @@ l   >< r = asc . desc $ descendL r []
 
 -- | /O(n)/.  Create a Tree from a finite list of elements.
 fromList :: (Measured a) => [a] -> SplayTree a
-fromList = balance . foldr (<|) Tip
+fromList = foldl' (|>) Tip
+
+-- | /O(n)/.  Create a Tree from a finite list of elements.
+-- 
+-- After the tree is created, it is balanced.  This is useful with sorted data,
+-- which would otherwise create a completely unbalanced tree.
+fromListBalance :: (Measured a) => [a] -> SplayTree a
+fromListBalance = balance . fromList
 
 -- -------------------------------------------
 -- deconstruction
@@ -168,6 +181,56 @@ query p t
 
 size :: SplayTree a -> Int
 size = foldl' (\acc _ -> acc+1) 0
+
+memberSplay
+  :: (Measured a, Ord (Measure a), Eq a)
+  => a
+  -> SplayTree a
+  -> (Bool, SplayTree a)
+memberSplay a tree = case snd <$> query (>= (measure a)) tree of
+  Nothing -> (False, tree)
+  Just foc@(Branch _ l a' r) -> (a == a', foc)
+
+delete
+  :: (Measured a, Ord (Measure a), Eq a)
+  => a
+  -> SplayTree a
+  -> SplayTree a
+delete a tree = case memberSplay a tree of
+  (False, t') -> t'
+  (True, Branch _ l _ r) -> l >< r
+
+insert 
+  :: (Measured a, Ord (Measure a), Eq a)
+  => a
+  -> SplayTree a
+  -> SplayTree a
+insert a tree = case snd <$> query (>= measure a) tree of
+  Nothing -> tree |> a
+  Just t'@(Branch _ l a' r) -> if a == a'
+    then t'
+    else l >< (a <| a' <| r)
+
+-- --------------------------
+-- Set operations
+
+difference
+  :: (Measured a, Ord (Measure a), Eq a)
+  => SplayTree a
+  -> SplayTree a
+  -> SplayTree a
+difference l r = foldl' (flip delete) l r
+
+intersection
+  :: (Measured a, Ord (Measure a), Eq a)
+  => SplayTree a
+  -> SplayTree a
+  -> SplayTree a
+intersection l r = fst $ foldl' f (empty, l) r
+ where
+  f (acc,testSet) x = case memberSplay x testSet of
+    (True,  t') -> (insert x acc, t')
+    (False, t') -> (acc, t')
 
 -- --------------------------
 -- Traversals

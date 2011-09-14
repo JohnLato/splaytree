@@ -71,38 +71,27 @@ size = S.size . unSet
 
 -- | Return 'True' if the given value is present in this set, 'False' otherwise.
 member :: (Ord a) => a -> Set a -> Bool
-member a (Set tree) = case snd <$> query (>= Elem a) tree of
-  Nothing                  -> False
-  Just (S.Branch _ l a' r) -> Elem a == a'
+member a set = fst $ memberSplay a set
 
 -- | Check if @a@ is a member, and return a set splayed to @a@.
 -- The return set is splayed to an element near @a@ if @a@ isn't in the
 -- set.
 memberSplay :: (Ord a) => a -> Set a -> (Bool, Set a)
-memberSplay a (Set tree) = case snd <$> query (>= Elem a) tree of
-  Nothing                      -> (False, Set tree)
-  Just foc@(S.Branch _ l a' r) -> (Elem a == a', Set foc)
+memberSplay a (Set tree) = fmap Set $ S.memberSplay (Elem a) tree
 
 -- | Construct a @Set@ from a list of elements.
+-- 
+-- The Set is created by calling 'Data.SplayTree.fromListBalance'.
 fromList :: (Ord a) => [a] -> Set a
-fromList = Set . S.fromList . P.map Elem
+fromList = Set . S.fromListBalance . P.map Elem
 
 -- | Add the specified value to this set.
 insert :: (Ord a) => a -> Set a -> Set a
-insert a (Set tree) = case snd <$> query (>= aIn) tree of
-  Nothing -> Set $ tree |> aIn
-  Just foc@(S.Branch _ l a' r) -> if aIn == a'
-    then Set foc
-    else Set $ l >< (aIn <| a' <| r)
- where aIn = Elem a
+insert a = Set . S.insert (Elem a) . unSet
 
 -- | Remove the specified value from this set if present.
 delete :: (Ord a) => a -> Set a -> Set a
-delete a (Set tree) = case snd <$> query (>= Elem a) tree of
-  Nothing -> Set tree
-  Just foc@(S.Branch _ l a' r) -> if Elem a == a'
-    then Set (l >< r)
-    else Set foc
+delete a (Set tree) = Set $ S.delete (Elem a) tree
 
 -- | Construct a set containing all elements from both sets.
 --
@@ -114,3 +103,12 @@ union l r = foldl' (flip insert) l r
 map :: (Ord a, Ord b) => (a -> b) -> Set a -> Set b
 map f = fromList . P.map f . toList
 
+-- | Difference of two sets.  Contains elements of the first set that are
+-- not present in the second.
+difference :: (Ord a) => Set a -> Set a -> Set a
+difference (Set l) (Set r) = Set (S.difference l r)
+
+-- | Intersection of two sets.  Contains all elements which are in both
+-- sets.
+intersection :: (Ord a) => Set a -> Set a -> Set a
+intersection (Set l) (Set r) = Set (S.intersection l r)
