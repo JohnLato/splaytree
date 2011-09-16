@@ -4,6 +4,8 @@
             ,DeriveFoldable
             ,DeriveTraversable #-}
 
+{-# OPTIONS_GHC -funbox-strict-fields #-}
+
 module Data.SplayTree.RangeSet (
   Range (..)
  ,RangeSet
@@ -35,8 +37,8 @@ import Data.Traversable
 
 -- | a RangeSet element
 data Range a = Range {
-  rMin  :: {-# UNPACK #-} !a
- ,rang  :: {-# UNPACK #-} !a
+  rMin  :: !a
+ ,rang  :: !a
  }
   deriving (Show, Ord, Eq, Functor, Foldable, Traversable)
 
