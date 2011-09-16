@@ -52,7 +52,7 @@ newtype Set a = Set { unSet :: SplayTree (Elem a) }
   deriving (Eq, Show, Ord, Foldable)
 
 instance Ord a => Monoid (Set a) where
-  mempty = Set mempty
+  mempty  = Set mempty
   mappend = union
 
 -- | Construct an empty set
@@ -74,12 +74,14 @@ size = S.size . unSet
 -- | Return 'True' if the given value is present in this set, 'False' otherwise.
 member :: (Ord a) => a -> Set a -> Bool
 member a set = fst $ memberSplay a set
+{-# INLINE member #-}
 
 -- | Check if @a@ is a member, and return a set splayed to @a@.
 -- The return set is splayed to an element near @a@ if @a@ isn't in the
 -- set.
 memberSplay :: (Ord a) => a -> Set a -> (Bool, Set a)
 memberSplay a (Set tree) = fmap Set $ S.memberSplay (Elem a) tree
+{-# INLINE memberSplay #-}
 
 -- | Construct a @Set@ from a list of elements.
 -- 

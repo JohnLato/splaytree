@@ -5,6 +5,7 @@
             ,GeneralizedNewtypeDeriving
             ,TypeFamilies
             ,GADTs
+            ,BangPatterns
             ,UndecidableInstances #-}
 
 module Data.SplayTree (
@@ -48,14 +49,19 @@ infixr 5 ><
 infixr 5 <|
 infixl 5 |>
 
+{-# INLINE (><) #-}
+{-# INLINE (<|) #-}
+{-# INLINE (|>) #-}
+
 
 class Monoid (Measure a) => Measured a where
   type Measure a :: *
   measure :: a -> Measure a
+  {-# INLINE measure #-}
 
 data SplayTree a where
   Tip :: SplayTree a
-  Branch :: Measure a -> SplayTree a -> a -> SplayTree a -> SplayTree a
+  Branch :: (Measure a) -> (SplayTree a) -> !a -> (SplayTree a) -> SplayTree a
  deriving (Typeable)
 
 instance (Eq a) => Eq (SplayTree a) where
@@ -81,11 +87,29 @@ leaf :: Measured a => a -> SplayTree a
 leaf a = Branch (measure a) Tip a Tip
 
 branch :: Measured a => SplayTree a -> a -> SplayTree a -> SplayTree a
-branch l a r = Branch (mconcat [measure l, measure a, measure r]) l a r
+branch l a r = Branch mm l a r
+ where
+  mm = case (l,r) of
+    (Tip, Tip) -> measure a
+    (Tip, Branch rm _ _ _) -> measure a `mappend` rm
+    (Branch lm _ _ _, Tip) -> lm `mappend` measure a
+    (Branch lm _ _ _, Branch rm _ _ _) -> mconcat [lm, measure a, rm]
 
 instance Foldable SplayTree where
   foldMap _ Tip              = mempty
   foldMap f (Branch _ l a r) = mconcat [foldMap f l, f a, foldMap f r]
+  {-# INLINE foldMap #-}
+  foldl = myFoldl
+  {-# INLINE foldl #-}
+
+myFoldl :: (a -> b -> a) -> a -> SplayTree b -> a
+myFoldl f i0 tree = go i0 tree
+ where
+  go !i    Tip = i
+  go !acc (Branch _ l a r) = let a1 = go acc l
+                                 a2 = a1 `seq` f a1 a
+                             in a2 `seq` go a2 r
+{-# INLINE myFoldl #-}
 
 -- -------------------------------------------
 -- Construction
@@ -175,6 +199,7 @@ query p t
    where
     ml = i `mappend` measure l
     mm = ml `mappend` measure a
+{-# INLINE query #-}
 
 -- --------------------------
 -- Basic interface
@@ -190,6 +215,7 @@ memberSplay
 memberSplay a tree = case snd <$> query (>= (measure a)) tree of
   Nothing -> (False, tree)
   Just foc@(Branch _ l a' r) -> (a == a', foc)
+{-# INLINE memberSplay #-}
 
 delete
   :: (Measured a, Ord (Measure a), Eq a)
@@ -271,13 +297,14 @@ deep descender tree = uncurry ascendSplay . desc $ descender tree []
   desc (Just (Tip, zp))          = (Tip, zp)
   desc (Just (b@(Branch{}), zp)) = desc $ descender b zp
   desc Nothing                   = (tree, [])
+{-# INLINE deep #-}
 
 -- -------------------------------------------
 -- splay tree stuff...
 
 -- use a zipper so descents/splaying can be done in a single pass
-data Thread a = DescL a (SplayTree a)
-              | DescR a (SplayTree a)
+data Thread a = DescL !a !(SplayTree a)
+              | DescR !a !(SplayTree a)
 
 descendL :: SplayTree a -> [Thread a] -> Maybe (SplayTree a, [Thread a])
 descendL (Branch _ l a r) zp = Just (l, DescL a r : zp)
@@ -290,6 +317,7 @@ descendR _  _                = Nothing
 up :: Measured a => SplayTree a -> Thread a -> SplayTree a
 up tree (DescL a r) = branch tree a r
 up tree (DescR a l) = branch l a tree
+{-# INLINE up #-}
 
 rotateL :: (Measured a) => SplayTree a -> SplayTree a
 rotateL (Branch annP (Branch annX lX aX rX) aP rP) =
@@ -306,20 +334,20 @@ rotateR tree = tree
 ascendSplay :: Measured a => SplayTree a -> [Thread a] -> SplayTree a
 ascendSplay x zp = go x zp
  where
-  go x [] = x
-  go x zp = uncurry go $ ascendSplay' x zp
+  go !x [] = x
+  go !x zp = uncurry go $ ascendSplay' x zp
 
 ascendSplay' :: Measured a => SplayTree a -> [Thread a] -> (SplayTree a, [Thread a])
-ascendSplay' x (pt@(DescL{}) : gt@(DescL{}) : zp') =
+ascendSplay' !x (pt@(DescL{}) : gt@(DescL{}) : zp') =
   let g = up (up x pt) gt in (rotateL (rotateL g), zp')
-ascendSplay' x (pt@(DescR{}) : gt@(DescR{}) : zp') =
+ascendSplay' !x (pt@(DescR{}) : gt@(DescR{}) : zp') =
   let g = up (up x pt) gt in (rotateR (rotateR g), zp')
-ascendSplay' x (pt@(DescR{}) : gt@(DescL{}) : zp') =
+ascendSplay' !x (pt@(DescR{}) : gt@(DescL{}) : zp') =
   (rotateL $ up (rotateR (up x pt)) gt, zp')
-ascendSplay' x (pt@(DescL{}) : gt@(DescR{}) : zp') =
+ascendSplay' !x (pt@(DescL{}) : gt@(DescR{}) : zp') =
   (rotateR $ up (rotateL (up x pt)) gt, zp')
-ascendSplay' x [pt@(DescL{})] = (rotateL (up x pt), [])
-ascendSplay' x [pt@(DescR{})] = (rotateR (up x pt), [])
+ascendSplay' !x [pt@(DescL{})] = (rotateL (up x pt), [])
+ascendSplay' !x [pt@(DescR{})] = (rotateR (up x pt), [])
 ascendSplay' _ [] = error "SplayTree: internal error, ascendSplay' called past root"
 
 -- ---------------------------
