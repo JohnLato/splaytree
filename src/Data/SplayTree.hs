@@ -58,7 +58,6 @@ infixl 5 |>
 class Monoid (Measure a) => Measured a where
   type Measure a :: *
   measure :: a -> Measure a
-  {-# INLINE measure #-}
 
 data SplayTree a where
   Tip :: SplayTree a
