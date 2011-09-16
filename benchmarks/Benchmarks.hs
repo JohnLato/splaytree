@@ -130,6 +130,11 @@ main = do
             , bench "ByteString" $ whnf (memberSp elemsBS) smbs
             , bench "Int" $ whnf (memberSp elemsI) smi
             ]
+          , bgroup "member-32"
+            [ bench "String" $ whnf (memberSp elems32) sm
+            , bench "ByteString" $ whnf (memberSp elemsBS32) smbs
+            , bench "Int" $ whnf (memberSp elemsI32) smi
+            ]
           , bgroup "member-miss"
             [ bench "String" $ whnf (memberSp elems') sm
             , bench "ByteString" $ whnf (memberSp elemsBS') smbs
@@ -140,11 +145,6 @@ main = do
             , bench "ByteString" $ whnf (insertSp elemsBS) SS.empty
             , bench "Int" $ whnf (insertSp elemsI) SS.empty
             ]
-          , bgroup "insert-foldr"
-            [ bench "String" $ whnf (insertSpr elems) SS.empty
-            , bench "ByteString" $ whnf (insertSpr elemsBS) SS.empty
-            , bench "Int" $ whnf (insertSpr elemsI) SS.empty
-            ]
           , bgroup "insert-dup"
             [ bench "String" $ whnf (insertSp elems) sm
             , bench "ByteString" $ whnf (insertSp elemsBS) smbs
@@ -154,11 +154,6 @@ main = do
             [ bench "String" $ whnf (deleteSp elems) sm
             , bench "ByteString" $ whnf (deleteSp elemsBS) smbs
             , bench "Int" $ whnf (deleteSp elemsI) smi
-            ]
-          , bgroup "delete-foldr"
-            [ bench "String" $ whnf (deleteSpr elems) sm
-            , bench "ByteString" $ whnf (deleteSpr elemsBS) smbs
-            , bench "Int" $ whnf (deleteSpr elemsI) smi
             ]
           , bgroup "delete-miss"
             [ bench "String" $ whnf (deleteSp elems') sm
@@ -202,6 +197,10 @@ main = do
     elemsBS = UBS.rnd 8 n
     elemsI  = UI.rnd (n+n) n
 
+    elems32 = take n $ cycle $ take 32 elems
+    elemsBS32 = take n . cycle $ take 32 elemsBS
+    elemsI32  = take n . cycle $ take 32 elemsI
+
     elems'   = US.rnd 8 n
     elemsBS' = UBS.rnd 8 n
     elemsI'  = UI.rnd (n+n) n
@@ -212,8 +211,11 @@ main = do
 -- * SplaySet
 
 memberSp :: (Eq k, Ord k) => [k] -> SS.Set k -> k
-memberSp xs m = foldr (\k z -> if SS.member k m then k else z) (head xs) xs
--- N.B. foldl is the worst-case test, foldr should be best...
+memberSp xs m = snd $ foldl' f (m, head xs) xs
+ where
+  f (m', k) z = case SS.memberSplay k m' of
+     (True,  m'2) -> (m'2, k)
+     (False, m'2) -> (m'2, z)
 {-# INLINE memberSp #-}
 
 insertSp :: (Eq k, Ord k) => [k] -> SS.Set k
@@ -221,15 +223,8 @@ insertSp :: (Eq k, Ord k) => [k] -> SS.Set k
 insertSp xs m0 = foldl' (\m v -> SS.insert v m) m0 xs
 {-# INLINE insertSp #-}
 
-insertSpr :: (Eq k, Ord k) => [k] -> SS.Set k
-       -> SS.Set k
-insertSpr xs m0 = foldr (\v m -> SS.insert v m) m0 xs
-
 deleteSp :: (Eq k, Ord k) => [k] -> SS.Set k -> SS.Set k
 deleteSp xs m0 = foldl' (\m k -> SS.delete k m) m0 xs
-
-deleteSpr :: (Eq k, Ord k) => [k] -> SS.Set k -> SS.Set k
-deleteSpr xs m0 = foldr (\k m -> SS.delete k m) m0 xs
 
 ------------------------------------------------------------------------
 -- * HashSet
