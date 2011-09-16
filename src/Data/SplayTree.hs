@@ -39,6 +39,7 @@ where
 import Prelude hiding (foldr, null)
 import Control.Applicative hiding (empty)
 import Control.Monad
+import Control.DeepSeq
 
 import Data.Data
 import Data.Foldable
@@ -63,6 +64,10 @@ data SplayTree a where
   Tip :: SplayTree a
   Branch :: (Measure a) -> (SplayTree a) -> !a -> (SplayTree a) -> SplayTree a
  deriving (Typeable)
+
+instance (NFData a, NFData (Measure a)) => NFData (SplayTree a) where
+  rnf Tip = ()
+  rnf (Branch m l a r) = m `deepseq` l `deepseq` a `deepseq` rnf r 
 
 instance (Eq a) => Eq (SplayTree a) where
   xs == ys = toList xs == toList ys

@@ -19,3 +19,4 @@ Library
                       Data.SplayTree.Seq
                       Data.SplayTree.Set
   Build-depends:      base         >= 3      && < 5
+                     ,deepseq      == 1.*
