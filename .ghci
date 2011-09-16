@@ -1,2 +1,2 @@
-:set -isrc -itests
+:set -isrc -itests -ibenchmarks
 :set -hide-package mtl
