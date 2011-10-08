@@ -196,6 +196,11 @@ query p t
   | otherwise = Nothing
  where
   asc (a,t',zp) = (a, ascendSplay t' zp)
+  desc i (b@(Branch _ Tip a Tip), zp) = (a,b,zp)
+  desc i (b@(Branch _ Tip a r), zp)
+    | p mm = (a,b,zp)
+    | otherwise = desc mm $ fromJust (descendR b zp)
+   where mm = i `mappend` measure a
   desc i (b@(Branch _ l a r), zp)
     | p ml = desc i $ fromJust (descendL b zp)
     | p mm = (a,b,zp)
