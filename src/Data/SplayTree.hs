@@ -191,6 +191,7 @@ query
   => (Measure a -> Bool)
   -> SplayTree a
   -> Maybe (a, SplayTree a)
+query p Tip = Nothing
 query p t
   | p (measure t) = Just . asc $ desc mempty (t, [])
   | otherwise = Nothing
