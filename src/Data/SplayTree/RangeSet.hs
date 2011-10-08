@@ -48,8 +48,10 @@ instance (Num a, Ord a) => Monoid (RangeM a) where
   mempty            = NoRange
   mappend NoRange b = b
   mappend a NoRange = a
-  mappend (RangeM (Range lm lrng)) (RangeM (Range rm rrng)) =
-    RangeM $ Range (min lm rm) (max (lm+lrng) (rm + rrng))
+  mappend (RangeM lr@(Range lm lrng)) (RangeM rr@(Range rm rrng)) =
+    let rEnd = max (rangeMax lr) (rangeMax rr)
+        rSt  = min lm rm
+    in  RangeM $ Range rSt (rEnd - rSt)
 
 instance (Num a, Ord a) => Measured (Range a) where
   type Measure (Range a) = RangeM a
