@@ -5,15 +5,18 @@
             ,DeriveTraversable #-}
 
 module Data.SplayTree.Seq (
-  module S
- ,Seq
+  Seq
+ ,cons
+ ,Data.SplayTree.Seq.toList
+ ,empty
 )
 
 where
 
-import Data.SplayTree as S
+import Data.SplayTree (Measured (..), SplayTree (..), fmap', traverse', (<|))
+import qualified Data.SplayTree as S
 
-import Control.Applicative
+import Control.Applicative hiding (empty)
 import Data.Monoid
 import Data.Foldable
 import Data.Traversable
@@ -34,3 +37,12 @@ instance Functor Seq where
 
 instance Traversable Seq where
   traverse f = fmap Seq . traverse' (traverse f) . unSeq
+
+cons :: a -> Seq a -> Seq a
+cons a = Seq . (Elem a <|) . unSeq
+
+toList :: Seq a -> [a]
+toList = Data.Foldable.toList
+
+empty :: Seq a
+empty = Seq $ S.empty
