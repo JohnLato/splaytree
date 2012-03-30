@@ -21,6 +21,7 @@ module Data.SplayTree (
  ,split
  ,query
  ,memberSplay
+ ,rootElem
  ,delete
  ,insert
  ,difference
@@ -226,6 +227,15 @@ memberSplay a tree = case snd <$> query (>= (measure a)) tree of
   Nothing -> (False, tree)
   Just foc@(Branch _ l a' r) -> (a == a', foc)
 {-# INLINE memberSplay #-}
+
+-- | Return the root element, if the tree is not empty.
+--
+-- This, combined with @memberSplay@, can be used to create many lookup
+-- functions
+rootElem :: SplayTree a -> Maybe a
+rootElem (Branch _ _l a _r) = Just a
+rootElem _                  = Nothing
+{-# INLINE rootElem #-}
 
 delete
   :: (Measured a, Ord (Measure a), Eq a)
