@@ -33,15 +33,18 @@ newtype Elem a = Elem { getElem :: a }
 
 instance Measured (Elem a) where
   type Measure (Elem a) = Sum Int
+  {-# INLINE measure #-}
   measure _ = Sum 1
 
 newtype Seq a = Seq { unSeq :: SplayTree (Elem a) }
   deriving (Eq, Show, Ord, Foldable, Monoid)
 
 instance Functor Seq where
+  {-# INLINE fmap #-}
   fmap f = Seq . fmap' (fmap f) . unSeq
 
 instance Traversable Seq where
+  {-# INLINE traverse #-}
   traverse f = fmap Seq . traverse' (traverse f) . unSeq
 
 cons :: a -> Seq a -> Seq a
@@ -81,3 +84,4 @@ init (Seq tree) = case S.deepR tree of
   Branch _ l _ Tip -> Seq l
   Tip              -> Seq Tip
   _                -> error "splayTree: internal error in Seq.init."
+{-# INLINE init #-}
