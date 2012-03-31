@@ -8,7 +8,9 @@ module Data.SplayTree.Seq (
   Seq
  ,cons
  ,Data.SplayTree.Seq.toList
+ ,fromList
  ,empty
+ ,lookupAt
 )
 
 where
@@ -40,9 +42,24 @@ instance Traversable Seq where
 
 cons :: a -> Seq a -> Seq a
 cons a = Seq . (Elem a <|) . unSeq
+{-# INLINE cons #-}
 
 toList :: Seq a -> [a]
 toList = Data.Foldable.toList
+{-# INLINE toList #-}
+
+fromList :: [a] -> Seq a
+fromList = Seq . S.fromListBalance . map Elem
+{-# INLINE fromList #-}
 
 empty :: Seq a
 empty = Seq $ S.empty
+
+-- | Look up a value at the given index.  Returns that value
+-- if it exists, and the appropriately splayed Seq.
+lookupAt :: Seq a -> Int -> (Maybe a, Seq a)
+lookupAt (Seq tree) ix | ix < 0 = (Nothing, Seq (S.deepL tree))
+lookupAt (Seq tree) ix = case S.query (>= Sum (ix+1)) tree of
+  Just (elem, tree') -> (Just $ getElem elem, Seq tree')
+  Nothing            -> (Nothing, Seq (S.deepR tree))
+{-# INLINE lookupAt #-}
