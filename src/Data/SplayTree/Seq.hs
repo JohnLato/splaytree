@@ -10,10 +10,14 @@ module Data.SplayTree.Seq (
  ,Data.SplayTree.Seq.toList
  ,fromList
  ,empty
+ ,length
  ,lookupAt
+ ,init
 )
 
 where
+
+import Prelude hiding (length, init)
 
 import Data.SplayTree (Measured (..), SplayTree (..), fmap', traverse', (<|))
 import qualified Data.SplayTree as S
@@ -55,6 +59,14 @@ fromList = Seq . S.fromListBalance . map Elem
 empty :: Seq a
 empty = Seq $ S.empty
 
+length :: Seq a -> Int
+length (Seq tree) = case S.deepR tree of
+  Branch m _ _ _  -> getSum m
+  Tip             -> 0
+-- could use the Seq.size function, but since the Measure is keeping track
+-- of size anyway, this seems cleaner.  Also probably more efficient.
+{-# INLINE length #-}
+
 -- | Look up a value at the given index.  Returns that value
 -- if it exists, and the appropriately splayed Seq.
 lookupAt :: Seq a -> Int -> (Maybe a, Seq a)
@@ -63,3 +75,9 @@ lookupAt (Seq tree) ix = case S.query (>= Sum (ix+1)) tree of
   Just (elem, tree') -> (Just $ getElem elem, Seq tree')
   Nothing            -> (Nothing, Seq (S.deepR tree))
 {-# INLINE lookupAt #-}
+
+init :: Seq a -> Seq a
+init (Seq tree) = case S.deepR tree of
+  Branch _ l _ Tip -> Seq l
+  Tip              -> Seq Tip
+  _                -> error "splayTree: internal error in Seq.init."
