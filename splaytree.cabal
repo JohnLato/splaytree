@@ -9,7 +9,7 @@ Author:              John W. Lato
 Maintainer:          jwlato@gmail.com
 Category:            Data
 Build-type:          Simple
-Cabal-version:       >=1.6
+Cabal-version:       >=1.8
 
 
 Library
@@ -20,3 +20,19 @@ Library
                       Data.SplayTree.Set
   Build-depends:      base         >= 3      && < 5
                      ,deepseq      == 1.*
+
+
+Test-Suite testIteratee
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  main-is: test_set.hs
+  hs-source-dirs: tests
+  ghc-options:    -fhpc -hpcdir dist/hpc/mix/splaytree-0.1.3
+
+  build-depends:
+      base,
+      splaytree,
+      containers,
+      QuickCheck                 >= 2   && < 3,
+      test-framework             >= 0.3 && < 0.7,
+      test-framework-quickcheck2 >= 0.2 && < 0.3
