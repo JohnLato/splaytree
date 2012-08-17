@@ -14,6 +14,7 @@ module Data.SplayTree.Map (
  ,insertWith
  ,delete
  ,lookup
+ ,findWithDefault
  ,init
 )
 
@@ -96,6 +97,12 @@ lookupAt (tree) key = case query (>= Max (Just key)) tree of
                           else (Nothing, tree')
   Nothing            -> (Nothing, S.deepR tree)
 {-# INLINE lookupAt #-}
+
+findWithDefault :: Ord k => a -> k -> Map k a -> (a, Map k a)
+findWithDefault def key tree = case lookupAt tree key of
+    (Just result, tree') -> (result, tree')
+    (Nothing, tree')     -> (def, tree')
+{-# INLINE findWithDefault #-}
 
 init :: Ord k => Map k a -> Map k a
 init (tree) = case S.deepR tree of
