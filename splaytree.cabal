@@ -9,7 +9,7 @@ Author:              John W. Lato
 Maintainer:          jwlato@gmail.com
 Category:            Data
 Build-type:          Simple
-Cabal-version:       >=1.8
+Cabal-version:       >=1.10
 
 
 Library
@@ -23,12 +23,12 @@ Library
                      ,deepseq      == 1.*
 
 
-Test-Suite testIteratee
+Test-Suite testSplay
   default-language: Haskell2010
   type: exitcode-stdio-1.0
   main-is: test_set.hs
   hs-source-dirs: tests
-  ghc-options:    -fhpc -hpcdir dist/hpc/mix/splaytree-0.1.3
+  ghc-options:    -fhpc -hpcdir dist/hpc/mix/splaytree-0.1.4
 
   build-depends:
       base,
