@@ -55,7 +55,7 @@ instance (Num a, Ord a) => Monoid (RangeM a) where
 
 instance (Num a, Ord a) => Measured (Range a) where
   type Measure (Range a) = RangeM a
-  measure a = RangeM a
+  measure = RangeM
 
 type RangeSet a = S.SplayTree (Range a)
   -- deriving (Eq, Show, Ord, Foldable, Monoid)
@@ -90,7 +90,7 @@ compareRange r (RangeM r') = rMin r <= rangeMax r'
 -- | create a range which encompasses both provided ranges
 combineMax :: (Num a, Ord a) => Range a -> Range a -> Range a
 combineMax l r = let min' = min (rMin l) (rMin r)
-                     rng' = (max (rangeMax l) (rangeMax r)) - min'
+                     rng' = max (rangeMax l) (rangeMax r) - min'
                  in Range min' rng'
 
 -- | subtract the second range from the first
@@ -127,9 +127,10 @@ append l r = foldl' insert l (toList r)
 insert :: (Num a, Ord a) => RangeSet a -> Range a -> RangeSet a
 insert tree rng = case snd <$> query (compareRange rng) tree of
   Nothing                      -> tree S.|> rng
-  Just (S.Branch _ l oRange r) -> if rMin oRange > rangeMax rng
-    then l >< (rng <| oRange <| r)
-    else l >< insert r (combineMax oRange rng)
+  Just (S.Branch _ l oRange r) ->
+    l >< if rMin oRange > rangeMax rng
+             then (rng <| oRange <| r)
+             else insert r (combineMax oRange rng)
 
 delete :: (Num a, Ord a) => RangeSet a -> Range a -> RangeSet a
 delete tree rng = case snd <$> query (compareRange rng) tree of

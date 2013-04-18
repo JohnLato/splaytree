@@ -60,7 +60,7 @@ fromList = Seq . S.fromListBalance . map Elem
 {-# INLINE fromList #-}
 
 empty :: Seq a
-empty = Seq $ S.empty
+empty = Seq S.empty
 
 length :: Seq a -> Int
 length (Seq tree) = case S.deepR tree of

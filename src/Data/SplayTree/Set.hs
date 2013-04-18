@@ -42,7 +42,7 @@ instance (Ord a) => Monoid (Elem a) where
   mempty = None
   mappend None b = b
   mappend a None = a
-  mappend a b = (max a b)
+  mappend a b = max a b
 
 instance (Ord a) => Measured (Elem a) where
   type Measure (Elem a) = Elem a
@@ -101,7 +101,7 @@ delete a (Set tree) = Set $ S.delete (Elem a) tree
 --
 -- The smaller set should be presented as the second argument.
 union :: (Ord a) => Set a -> Set a -> Set a
-union l r = foldl' (flip insert) l r
+union l = foldl' (flip insert) l
 
 -- | Transform this set by applying a function to every value.
 map :: (Ord a, Ord b) => (a -> b) -> Set a -> Set b
