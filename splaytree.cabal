@@ -9,10 +9,10 @@ Author:              John W. Lato
 Maintainer:          jwlato@gmail.com
 Category:            Data
 Build-type:          Simple
-Cabal-version:       >=1.10
-
+Cabal-version:       >=1.16
 
 Library
+  default-language: Haskell2010
   Hs-Source-Dirs:     src
   Exposed-modules:    Data.SplayTree
                       Data.SplayTree.Map
@@ -34,8 +34,8 @@ Test-Suite testSplay
       splaytree,
       containers,
       QuickCheck                 >= 2   && < 3,
-      test-framework             >= 0.3 && < 0.7,
-      test-framework-quickcheck2 >= 0.2 && < 0.3
+      test-framework             >= 0.3 && < 0.9,
+      test-framework-quickcheck2 >= 0.2 && < 0.4
 
 source-repository head
   type:                git
