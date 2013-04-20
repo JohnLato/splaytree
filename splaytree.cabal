@@ -9,7 +9,7 @@ Author:              John W. Lato
 Maintainer:          jwlato@gmail.com
 Category:            Data
 Build-type:          Simple
-Cabal-version:       >=1.16
+Cabal-version:       >=1.14
 
 Library
   default-language: Haskell2010
