@@ -4,11 +4,15 @@
             ,DeriveFoldable
             ,DeriveTraversable #-}
 
+{-# OPTIONS -fprof-auto-top #-}
+
 module Data.SplayTree.BQueue (
   BQueue
  ,cons
  ,Data.SplayTree.BQueue.toList
+ ,Data.SplayTree.BQueue.foldl
  ,fromList
+ ,elems
  ,empty
  ,length
  ,lookup
@@ -16,6 +20,7 @@ module Data.SplayTree.BQueue (
  ,insert
  ,adjust
  ,delete
+ ,find
 )
 
 where
@@ -28,12 +33,12 @@ import qualified Data.SplayTree as S
 import Control.Arrow (first)
 import Control.Applicative hiding (empty)
 import Data.Monoid
-import Data.Foldable
+import qualified Data.Foldable as Fold
 import Data.Traversable
 
 -- a Seq type
 newtype Elem a = Elem { getElem :: a }
-  deriving (Show, Ord, Eq, Num, Enum, Functor, Foldable, Traversable)
+  deriving (Show, Ord, Eq, Num, Enum, Functor, Fold.Foldable, Traversable)
 
 instance Measured (Elem a) where
   type Measure (Elem a) = Sum Int
@@ -41,7 +46,7 @@ instance Measured (Elem a) where
   measure _ = Sum 1
 
 newtype BQueue a = BQueue { unBQueue :: SplayTree (Elem a) }
-  deriving (Eq, Show, Ord, Foldable, Monoid)
+  deriving (Eq, Show, Ord, Fold.Foldable, Monoid)
 
 instance Functor BQueue where
   {-# INLINE fmap #-}
@@ -56,7 +61,7 @@ cons a = BQueue . (Elem a <|) . unBQueue
 {-# INLINE cons #-}
 
 toList :: BQueue a -> [a]
-toList = Data.Foldable.toList
+toList = Fold.toList
 {-# INLINE toList #-}
 
 fromList :: [a] -> BQueue a
@@ -100,19 +105,22 @@ singleton :: a -> BQueue a
 singleton = BQueue . S.singleton . Elem
 
 insert :: Int -> a -> BQueue a -> BQueue a
-insert ix x (BQueue tree) = case snd <$> S.query (>= Sum (ix+1)) tree of
-    Just (Branch _ l a' r) -> BQueue $ l >< (Elem x <| a' <| r)
+insert ix x (BQueue tree) = case S.query (>= Sum (ix+1)) tree of
+    Just (_, Branch _ l a' r) -> BQueue $ l >< (Elem x <| a' <| r)
     Nothing -> BQueue $ tree |> Elem x
+{-# INLINE insert #-}
 
 adjust :: (a -> a) -> Int -> BQueue a -> BQueue a
 adjust f ix (BQueue tree) = case snd <$> S.query (>= Sum (ix+1)) tree of
     Just (Branch _ l a r) -> BQueue $ l >< ((f <$> a) <| r)
     Nothing -> BQueue tree
+{-# INLINE adjust #-}
 
 delete :: Int -> BQueue a -> BQueue a
 delete ix (BQueue tree) = case snd <$> S.query (>= Sum (ix+1)) tree of
     Nothing -> BQueue tree
     Just (Branch _ l _ r) -> BQueue $ l >< r
+{-# INLINE delete #-}
 
 null :: BQueue a -> Bool
 null (BQueue Tip) = True
@@ -134,3 +142,5 @@ find p (BQueue tree) = go 0 tree
                     in sum' `seq` go sum' r
         Just r -> return r
 
+foldl :: (a -> b -> a) -> a -> BQueue b -> a
+foldl = Fold.foldl
