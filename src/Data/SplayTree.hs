@@ -62,7 +62,7 @@ class Monoid (Measure a) => Measured a where
 
 data SplayTree a where
   Tip :: SplayTree a
-  Branch :: (Measure a) -> (SplayTree a) -> !a -> (SplayTree a) -> SplayTree a
+  Branch :: Measure a -> !(SplayTree a) -> !a -> !(SplayTree a) -> SplayTree a
  deriving (Typeable)
 
 instance (NFData a, NFData (Measure a)) => NFData (SplayTree a) where
@@ -125,34 +125,48 @@ empty = Tip
 singleton :: Measured a => a -> SplayTree a
 singleton = leaf
 
+-- the implementations for (<|) and (|>) are not quite correct.  Really
+-- we should insert the new element properly and splay it up to the top,
+-- as this can change the rest of the tree.  But it's much faster to just
+-- add the new element at the root, and since we know half the tree will
+-- be empty anyway the result is pretty similar.
 (<|) :: (Measured a) => a -> SplayTree a -> SplayTree a
+a <| t = branch Tip a t
+{-
 a <| Tip          = branch Tip a Tip
-a <| t@(Branch{}) = asc . desc $ descendL t []
+a <| t@(Branch{}) = desc $ descendL t []
  where
-  asc = uncurry ascendSplay
-  desc (Just (Tip, zp))         = (leaf a, zp)
-  desc (Just (b@(Branch {}), zp)) = desc $ descendL b zp
-  desc Nothing                    = error "SplayTree.(<|): internal error"
+  desc (MZ Tip zp)           = ascendSplay (leaf a) zp
+  desc (MZ b@(Branch {}) zp) = desc $ descendL b zp
+  desc NoMZ                  = error "SplayTree.(<|): internal error"
+-}
 
 (|>) :: (Measured a) => SplayTree a -> a -> SplayTree a
+t |> b = branch t b Tip
+{-
 Tip          |> b = leaf b
-t@(Branch{}) |> b = asc . desc $ descendR t []
+t@(Branch{}) |> b = desc $ descendR t []
  where
-  asc = uncurry ascendSplay
-  desc (Just (Tip, zp))         = (leaf b, zp)
-  desc (Just (b@(Branch {}), zp)) = desc $ descendR b zp
-  desc Nothing                    = error "SplayTree.(|>): internal error"
+  desc (MZ Tip zp)           = ascendSplay (leaf b) zp
+  desc (MZ b@(Branch {}) zp) = desc $ descendR b zp
+  desc NoMZ                  = error "SplayTree.(|>): internal error"
+-}
 
 -- | Append two trees.
 (><) :: (Measured a) => SplayTree a -> SplayTree a -> SplayTree a
-Tip >< ys  = ys
-xs  >< Tip = xs
-l   >< r = asc . desc $ descendL r []
+(><) = go
+  where
+    go Tip ys  = ys
+    go xs  Tip = xs
+    go xs  (Branch _ l y r) = branch (go xs l) y r
+
+{-
+l   >< r = desc $ descendL r []
  where
-  asc = uncurry ascendSplay
-  desc (Just (Tip, zp))          = (l, zp)
-  desc (Just (b@(Branch{}), zp)) = desc $ descendL b zp
-  desc Nothing                   = error "SplayTree.(><): internal error"
+  desc (MZ Tip zp)          = ascendSplay l zp
+  desc (MZ b@(Branch{}) zp) = desc $ descendL b zp
+  desc NoMZ                 = error "SplayTree.(><): internal error"
+-}
 
 -- | /O(n)/.  Create a Tree from a finite list of elements.
 fromList :: (Measured a) => [a] -> SplayTree a
@@ -171,7 +185,7 @@ fromListBalance = balance . fromList
 -- | Is the tree empty?
 null :: SplayTree a -> Bool
 null Tip = True
-null _     = False
+null _   = False
 
 -- | Split a tree at the point where the predicate on the measure changes from
 -- False to True.
@@ -194,19 +208,19 @@ query
   -> Maybe (a, SplayTree a)
 query p Tip = Nothing
 query p t
-  | p (measure t) = Just . asc $ desc mempty (t, [])
+  | p (measure t) = Just . asc $ desc mempty t []
   | otherwise = Nothing
  where
   asc (a,t',zp) = (a, ascendSplay t' zp)
-  desc i (b@(Branch _ Tip a Tip), zp) = (a,b,zp)
-  desc i (b@(Branch _ Tip a r), zp)
+  desc i b@(Branch _ Tip a Tip) zp = (a,b,zp)
+  desc i b@(Branch _ Tip a r) zp
     | p mm = (a,b,zp)
-    | otherwise = desc mm $ fromJust (descendR b zp)
+    | otherwise = let MZ b' zp' = descendR b zp in desc mm b' zp'
    where mm = i `mappend` measure a
-  desc i (b@(Branch _ l a r), zp)
-    | p ml = desc i $ fromJust (descendL b zp)
+  desc i b@(Branch _ l a r) zp
+    | p ml = let MZ b' zp' = descendL b zp in desc i b' zp'
     | p mm = (a,b,zp)
-    | otherwise = desc mm $ fromJust (descendR b zp)
+    | otherwise = let MZ b' zp' = descendR b zp in desc mm b' zp'
    where
     ml = i `mappend` measure l
     mm = ml `mappend` measure a
@@ -309,35 +323,38 @@ deepR = deep descendR
 -- in the tree.
 deep
   :: Measured a
-  => (SplayTree a -> [Thread a] -> Maybe (SplayTree a, [Thread a]))
+  => (SplayTree a -> [Thread a] -> MZ a)
   -> SplayTree a
   -> SplayTree a
-deep descender tree = uncurry ascendSplay . desc $ descender tree []
+deep descender tree = desc $ descender tree []
  where
-  desc (Just (Tip, zp))          = (Tip, zp)
-  desc (Just (b@(Branch{}), zp)) = desc $ descender b zp
-  desc Nothing                   = (tree, [])
+  desc (MZ Tip zp)          = ascendSplay Tip zp
+  desc (MZ b@(Branch{}) zp) = desc $ descender b zp
+  desc NoMZ                 = ascendSplay tree []
 {-# INLINE deep #-}
 
 -- -------------------------------------------
 -- splay tree stuff...
 
 -- use a zipper so descents/splaying can be done in a single pass
-data Thread a = DescL !a !(SplayTree a)
-              | DescR !a !(SplayTree a)
+data Thread a = DescL a (SplayTree a)
+              | DescR a (SplayTree a)
 
-descendL :: SplayTree a -> [Thread a] -> Maybe (SplayTree a, [Thread a])
-descendL (Branch _ l a r) zp = Just (l, DescL a r : zp)
-descendL _  _                = Nothing
+data MZ a =
+    NoMZ
+  | MZ (SplayTree a) [Thread a]
 
-descendR :: SplayTree a -> [Thread a] -> Maybe (SplayTree a, [Thread a])
-descendR (Branch _ l a r) zp = Just (r, DescR a l : zp)
-descendR _  _                = Nothing
+descendL :: SplayTree a -> [Thread a] -> MZ a
+descendL (Branch _ l a r) zp = MZ l $ DescL a r : zp
+descendL _  _                = NoMZ
+
+descendR :: SplayTree a -> [Thread a] -> MZ a
+descendR (Branch _ l a r) zp = MZ r $ DescR a l : zp
+descendR _  _                = NoMZ
 
 up :: Measured a => SplayTree a -> Thread a -> SplayTree a
 up tree (DescL a r) = branch tree a r
 up tree (DescR a l) = branch l a tree
-{-# INLINE up #-}
 
 rotateL :: (Measured a) => SplayTree a -> SplayTree a
 rotateL (Branch annP (Branch annX lX aX rX) aP rP) =
@@ -352,23 +369,23 @@ rotateR (Branch annP lP aP (Branch annX lX aX rX)) =
 rotateR tree = tree
 
 ascendSplay :: Measured a => SplayTree a -> [Thread a] -> SplayTree a
-ascendSplay x zp = go x zp
+ascendSplay x0 zp0 = go x0 zp0
  where
   go !x [] = x
   go !x zp = uncurry go $ ascendSplay' x zp
 
-ascendSplay' :: Measured a => SplayTree a -> [Thread a] -> (SplayTree a, [Thread a])
-ascendSplay' !x (pt@(DescL{}) : gt@(DescL{}) : zp') =
-  let g = up (up x pt) gt in (rotateL (rotateL g), zp')
-ascendSplay' !x (pt@(DescR{}) : gt@(DescR{}) : zp') =
-  let g = up (up x pt) gt in (rotateR (rotateR g), zp')
-ascendSplay' !x (pt@(DescR{}) : gt@(DescL{}) : zp') =
-  (rotateL $ up (rotateR (up x pt)) gt, zp')
-ascendSplay' !x (pt@(DescL{}) : gt@(DescR{}) : zp') =
-  (rotateR $ up (rotateL (up x pt)) gt, zp')
-ascendSplay' !x [pt@(DescL{})] = (rotateL (up x pt), [])
-ascendSplay' !x [pt@(DescR{})] = (rotateR (up x pt), [])
-ascendSplay' _ [] = error "SplayTree: internal error, ascendSplay' called past root"
+  -- ascendSplay' :: Measured a => SplayTree a -> [Thread a] -> (SplayTree a, [Thread a])
+  ascendSplay' x (pt@(DescL{}) : gt@(DescL{}) : zp') =
+    let g = up (up x pt) gt in (rotateL (rotateL g), zp')
+  ascendSplay' x (pt@(DescR{}) : gt@(DescR{}) : zp') =
+    let g = up (up x pt) gt in (rotateR (rotateR g), zp')
+  ascendSplay' x (pt@(DescR{}) : gt@(DescL{}) : zp') =
+    (rotateL $ up (rotateR (up x pt)) gt, zp')
+  ascendSplay' x (pt@(DescL{}) : gt@(DescR{}) : zp') =
+    (rotateR $ up (rotateL (up x pt)) gt, zp')
+  ascendSplay' x [pt@(DescL{})] = (rotateL (up x pt), [])
+  ascendSplay' x [pt@(DescR{})] = (rotateR (up x pt), [])
+  ascendSplay' _ [] = error "SplayTree: internal error, ascendSplay' called past root"
 
 -- ---------------------------
 -- A measure of tree depth
