@@ -13,7 +13,7 @@ module Data.SplayTree.Map (
  ,insert
  ,insertWith
  ,delete
- ,lookup
+ ,lookupAt
  ,findWithDefault
  ,init
 )
