@@ -32,7 +32,7 @@ import qualified Data.SplayTree as S
 
 import Control.Applicative hiding (empty)
 import Data.Monoid
-import Data.Foldable
+import Data.Foldable hiding (null)
 import Data.Traversable
 
 -- | a RangeSet element

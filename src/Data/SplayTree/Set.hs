@@ -31,7 +31,7 @@ import qualified Data.SplayTree as S
 import           Control.Applicative hiding (empty)
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Foldable
+import           Data.Foldable hiding (null)
 import           Data.Traversable
 
 -- a Set type

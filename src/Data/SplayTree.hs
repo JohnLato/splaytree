@@ -43,7 +43,7 @@ import Control.Monad
 import Control.DeepSeq
 
 import Data.Data
-import Data.Foldable
+import Data.Foldable hiding (null)
 import Data.Maybe
 import Data.Monoid
 
